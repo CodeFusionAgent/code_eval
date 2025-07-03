@@ -1,3 +1,5 @@
-# Contains evaluation code and dataset for the CodeFusion project
+# Eval code and dataset 
+
+Contains evaluation code, results, dataset for the CodeFusion project.
 
 
