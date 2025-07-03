@@ -1,1 +1,3 @@
-# code_eval
+# Contains evaluation code and dataset for the CodeFusion project
+
+
