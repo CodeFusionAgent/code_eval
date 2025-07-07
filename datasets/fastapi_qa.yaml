@@ -1,0 +1,248 @@
+title: FastApi Project Dataset
+questions:
+- question: How does the Dependency Injection system work?
+  answer: "At its core, FastAPI's Dependency Injection (DI) system is a way for our\
+    \ functions to declare what they need to work. Instead of creating a database\
+    \ connection or validating a user token\ninside every single endpoint, we write\
+    \ that logic once in a \"dependency\" function. Then, we use    \n\nDepends to\
+    \ tell an endpoint that it requires that logic. FastAPI handles running the dependency\
+    \ and providing its result to our endpoint function. This helps us reuse code,\
+    \ share database connections,\nand enforce security consistently.   \n\nFor Python\
+    \ 3.9+ and later versions, you'll see us use typing.Annotated to declare dependencies.\
+    \ This is the modern, recommended syntax because it clearly separates the variable's\
+    \ type from the\ndependency metadata, making the code cleaner and easier for our\
+    \ development tools to understand.   \n<h1> this is a test </h1>\n## Markdown\n\
+    def my_func(): \n  pass\n"
+- question: When should I use yield in a dependency?
+  answer: "You should use yield when a dependency needs to perform a setup action\
+    \ before the request is handled and a teardown action after the response is sent.\
+    \ This is most commonly used for managing database connections.   \n\nThe code\
+    \ before the yield is the setup step (e.g., creating a database session). The\
+    \ value that is yielded is what gets injected into the endpoint. The code in a\
+    \ finally block after the yield is the teardown\nstep (e.g., closing the session).\
+    \ This guarantees that resources are always released, even if an error occurs\
+    \ during the request.   \n\nThis pattern also works with nested dependencies.\
+    \ If one dependency that uses yield relies on another, FastAPI ensures the setup\
+    \ and teardown actions happen in the correct order.   \n"
+- question: 'What are the different ways to use classes as dependencies?
+
+    '
+  answer: "There are two main patterns for using classes as dependencies, and they\
+    \ serve different purposes:\n\n For Grouping Request Parameters (Depends(MyClass)):\
+    \ This is useful when you have a set of common parameters (like pagination skip\
+    \ and limit) that appear in many endpoints. You define a class with\n these parameters\
+    \ in its __init__ method. FastAPI will create a new instance of this class for\
+    \ each request, populating it with the relevant query or path parameters. This\
+    \ helps keep endpoint function signatures clean.   \n\n For Stateful, Reusable\
+    \ Services (Depends(instance)): This pattern is for when you need a long-lived,\
+    \ configurable service object. You create a class that is callable (by implementing\
+    \ a __call__ method) and\n instantiate it once when the application starts. The\
+    \ __init__ method is used for one-time configuration (like loading a machine learning\
+    \ model or setting an API key). For each request, FastAPI will invoke the\n object's\
+    \ __call__ method to perform the request-specific logic.   \n"
+- question: 'Where can dependencies be applied in the application?
+
+    '
+  answer: "Dependencies can be applied at four different levels, allowing for granular\
+    \ control:\nGlobal (FastAPI(dependencies=...)): Applied to every single endpoint\
+    \ in the entire application. Use this for universal requirements like a global\
+    \ API key check or request logging.   \nRouter (APIRouter(dependencies=...)):\
+    \ Applied to a group of related endpoints defined in an APIRouter. This is perfect\
+    \ for enforcing permissions on a specific resource, like ensuring a user has access\
+    \ to all /products endpoints.   \nPath Operation Decorator (@app.get(..., dependencies=...)):\
+    \ Applied to a single endpoint. This is used when a dependency needs to run for\
+    \ its side effects (like authentication) but its return value isn't needed in\
+    \ the function body.   \nPath Operation Parameter (user: User = Depends(...)):\
+    \ This is the most common method. The dependency runs, and its return value is\
+    \ injected into the endpoint function as a parameter.   \n"
+- question: 'How do we use dependency_overrides for testing?
+
+    '
+  answer: "The app.dependency_overrides attribute is the key to our testing strategy.\
+    \ It allows us to replace a production dependency with a test-specific one without\
+    \ changing any application code. For example, in our tests, we can override the\
+    \    \nget_db dependency that connects to the production database with a get_test_db\
+    \ dependency that connects to a temporary, in-memory database. This lets us test\
+    \ our endpoint logic in complete isolation from external services, making our\
+    \ tests fast and reliable.\n"
+- question: 'When should I use async def versus def for my endpoint functions?
+
+    '
+  answer: "The choice between async def and def is critical for performance -   \n\
+    Use async def for I/O-bound operations. If your function needs to await a call\
+    \ to a database, an external API, or any other network operation, you must use\
+    \ async def. This allows the server to handle other requests while it's waiting,\
+    \ leading to very high concurrency.   \nUse def for CPU-bound operations. If your\
+    \ function performs heavy, blocking computations (like processing a large file\
+    \ or running a complex algorithm) and doesn't use await, you should declare it\
+    \ with a normal def. FastAPI is smart enough to run this in a separate thread\
+    \ pool, which prevents it from blocking the main server process.   \nUsing a blocking\
+    \ library or a CPU-intensive task in an async def function will freeze the entire\
+    \ server, so it's important to choose correctly.\nShould I implement logic as\
+    \ middleware or as a global dependency? Middleware and global dependencies can\
+    \ seem similar, but they operate at different levels:\n\n    Use Middleware for\
+    \ broad concerns that operate on the raw HTTP request and response. Middleware\
+    \ is ideal for adding CORS headers, GZip compression, or logging the processing\
+    \ time for every single request, even those that don't match a route.   \n\n \
+    \   Use a Global Dependency for shared application logic that requires access\
+    \ to validated data or other dependencies. This is the right choice for enforcing\
+    \ application-wide authentication and loading a user object, or managing a database\
+    \ transaction for each request.   \n"
+- question: 'How do we use APIRouter to structure the application?
+
+    '
+  answer: "We use APIRouter to break our application into smaller, domain-oriented\
+    \ components. Instead of one giant    \nmain.py file, we group related endpoints\
+    \ into routers (e.g., users.py, items.py). Each APIRouter can have its own prefix\
+    \ (like /users), tags for documentation, and a list of dependencies to enforce\
+    \ resource-specific rules. The main application file then becomes a simple assembler\
+    \ that imports and includes these routers. This keeps our codebase organized,\
+    \ modular, and easier to maintain.   \n"
+- question: 'How is security handled for a protected endpoint?
+
+    '
+  answer: "Security is integrated directly into the dependency injection system. For\
+    \ a typical JWT-based authentication flow:   \n\n We define an OAuth2PasswordBearer\
+    \ instance. This is a dependency that knows how to extract a token from the Authorization\
+    \ header.\n\n We create a get_current_user dependency. This function itself depends\
+    \ on the OAuth2PasswordBearer instance to get the token string. It then decodes,\
+    \ validates the token, and fetches the corresponding user from the database.\n\
+    \n To protect an endpoint, we simply add Depends(get_current_user) to its parameters.\
+    \ If the token is missing or invalid, the dependency raises an HTTPException,\
+    \ and the request is stopped before our endpoint logic ever runs.\n\n For endpoints\
+    \ that require specific permissions, we use Security() instead of Depends(), which\
+    \ allows us to specify required OAuth2 scopes that are then reflected in the API\
+    \ documentation.   \n"
+- question: 'How should I write tests for my features?
+
+    '
+  answer: "Our testing strategy combines TestClient with dependency_overrides. You\
+    \ should write tests that use TestClient to make real HTTP requests to your application\
+    \ in memory. This tests the full stack, from routing and validation to your endpoint\
+    \ logic. To isolate the test from external services like the database, use   \
+    \ \n\napp.dependency_overrides to swap out the production dependencies with mocks\
+    \ or fakes that return predictable data. This makes tests fast, reliable, and\
+    \ runnable in any environment.\n"
+- question: 'What does our production deployment look like?
+
+    '
+  answer: "We containerize our application using Docker for consistency across environments.\
+    \ Inside the container, we use Gunicorn as a process manager to run multiple Uvicorn\
+    \ worker processes.   \n\nUvicorn is the high-performance ASGI server that runs\
+    \ our FastAPI application.   \n\nGunicorn manages these Uvicorn workers, allowing\
+    \ us to leverage multiple CPU cores and automatically restarting any worker that\
+    \ crashes, which provides resilience.   \n"
+- question: 'What''s the difference between using response_model and just returning
+    a Pydantic model?
+
+    '
+  answer: "While both involve Pydantic models, response_model provides an essential\
+    \ security and documentation feature.\n\nReturning a Pydantic model directly will\
+    \ serialize all fields in that model.\n\nUsing the response_model parameter in\
+    \ the decorator filters the output. It ensures that only the fields defined in\
+    \ the response_model are included in the final JSON response. This is crucial\
+    \ for preventing accidental data leakage, such as sending a user's hashed_password.\
+    \ It also provides a precise response schema for the API documentation.   \n"
+- question: 'How can I use advanced Pydantic features in my models?
+
+    '
+  answer: "FastAPI's integration with Pydantic allows you to use its advanced features\
+    \ directly in your request and response models :   \nField: Use Field to add extra\
+    \ validation (e.g., gt=0, max_length=50) and to provide metadata like a title\
+    \ or description that will appear in the API docs.   \nAliases: Use Field(alias=\"\
+    ...\") to map a JSON field with a different name (e.g., one with a hyphen) to\
+    \ a valid Python attribute.\nComputed Fields: Use the @computed_field decorator\
+    \ to add fields to your response model that are calculated on the fly from other\
+    \ fields.\n"
+- question: 'When should I use a Background Task?
+
+    '
+  answer: "Use a BackgroundTask for \"fire-and-forget\" operations that you need to\
+    \ run after a response has been sent to the client. This is perfect for tasks\
+    \ that shouldn't make the user wait, such as sending a confirmation email, logging\
+    \ an event to an external service, or invalidating a cache. The task runs in the\
+    \ background, and the client receives their response immediately.   \n"
+- question: 'How do I manage a WebSocket connection?
+
+    '
+  answer: 'WebSocket endpoints are long-lived and stateful. The handler function receives
+    a WebSocket object. The standard pattern is:
+
+    Authentication: Since dependencies don''t work the same way, authentication is
+    typically handled by passing a token in a query parameter. You should validate
+    this token first. If it''s invalid, close the connection immediately.
+
+    Accept Connection: Call await websocket.accept().
+
+    Communication Loop: Enter a try...except WebSocketDisconnect block with a while
+    True loop inside. In the loop, you await websocket.receive_text() and await websocket.send_text().
+
+    Handle Disconnect: The except block allows you to perform cleanup actions when
+    the client disconnects.
+
+    '
+- question: 'How can I customize the API documentation for my new endpoints?
+
+    '
+  answer: "FastAPI automatically generates OpenAPI documentation. You can customize\
+    \ it in several ways:   \nApp-level metadata: Provide a title, description, version,\
+    \ etc., when you create the FastAPI instance.   \nTags: Use the tags parameter\
+    \ in APIRouter or in the path operation decorator to group related endpoints.\
+    \ You can also provide descriptions for tags in the main    \nFastAPI constructor.\n\
+    \n     Endpoint descriptions: Use docstrings in your endpoint functions. The first\
+    \ line becomes the summary, and the rest becomes the description.\n\n     Parameter\
+    \ and Body descriptions: Use the description argument in Query, Path, Body, and\
+    \ Pydantic's Field to document individual parameters.   \n"
+- question: 'When should I raise an HTTPException versus creating a custom exception
+    handler?
+
+    '
+  answer: 'Raise HTTPException for expected, business-logic-related errors within
+    an endpoint (e.g., if not item: raise HTTPException(status_code=404)). It''s simple
+    and direct for handling specific cases.
+
+    Use a custom exception handler (@app.exception_handler) to centralize error handling
+    for custom, application-wide exceptions. This allows you to define your own exception
+    types (e.g., ItemNotFoundInDBError) in your business logic and have a single handler
+    that translates that exception into a standard HTTP 404 response. This separates
+    concerns and avoids duplicating code.
+
+    '
+- question: 'How do we implement API versioning?
+
+    '
+  answer: "We use APIRouter and path prefixes for versioning. Each API version (e.g.,\
+    \ v1, v2) is contained in its own set of routers. In the main application, we\
+    \ include each version's main router with a versioned prefix:\n   app.include_router(v1_router,\
+    \ prefix=\"/v1\")\n   app.include_router(v2_router, prefix=\"/v2\")\nThis approach\
+    \ provides clear code isolation, allows for independent dependencies per version,\
+    \ and is explicit for API consumers.   \n"
+- question: 'Is it ever okay to use the raw Request object?
+
+    '
+  answer: "Yes, but only when you need information that isn't available through the\
+    \ standard declarative parameters. You should inject the raw request: Request\
+    \ object when you need to :   \n\n   Access the client's IP address (request.client.host).\n\
+    \n   Read the raw, unparsed request body (e.g., for webhook signature verification).\n\
+    \n   Access shared state via request.state that was set by a middleware.\n"
+- question: 'How do I handle form data or file uploads?
+
+    '
+  answer: "To handle multipart/form-data, you first need to pip install python-multipart.\
+    \   \nFor form fields: Use the Form() dependency (e.g., username: str = Form()).\n\
+    For file uploads: Use the UploadFile type (e.g., file: UploadFile). The UploadFile\
+    \ object gives you access to the filename, content type, and an async-compatible\
+    \ file-like object to read the contents.\n"
+- question: 'What is the app.state object for?
+
+    '
+  answer: 'The app.state object is a dedicated namespace for storing application-wide,
+    shared resources. It''s superior to using global variables because it''s more
+    explicit and testable. We use it to hold objects that are created once at startup,
+    such as a database connection pool or a loaded machine learning model. This state
+    can then be accessed from within dependencies or endpoints via the request.app.state
+    attribute.
+
+    '
+- question: test
+  answer: test

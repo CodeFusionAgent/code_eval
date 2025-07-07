@@ -1,19 +1,21 @@
-title: FastApi Project Dataset:
+title: FastApi Project Dataset
 questions:
-  - question: |
-      How does the Dependency Injection system work?
+  - question: How does the Dependency Injection system work?
     answer: |
-       At its core, FastAPI's Dependency Injection (DI) system is a way for our functions to declare what they need to work. Instead of creating a database connection or validating a user token
-       inside every single endpoint, we write that logic once in a "dependency" function. Then, we use    
+      At its core, FastAPI's Dependency Injection (DI) system is a way for our functions to declare what they need to work. Instead of creating a database connection or validating a user token
+      inside every single endpoint, we write that logic once in a "dependency" function. Then, we use    
 
-       Depends to tell an endpoint that it requires that logic. FastAPI handles running the dependency and providing its result to our endpoint function. This helps us reuse code, share database connections,
-       and enforce security consistently.   
+      Depends to tell an endpoint that it requires that logic. FastAPI handles running the dependency and providing its result to our endpoint function. This helps us reuse code, share database connections,
+      and enforce security consistently.   
 
-       For Python 3.9+ and later versions, you'll see us use typing.Annotated to declare dependencies. This is the modern, recommended syntax because it clearly separates the variable's type from the
-       dependency metadata, making the code cleaner and easier for our development tools to understand.   
+      For Python 3.9+ and later versions, you'll see us use typing.Annotated to declare dependencies. This is the modern, recommended syntax because it clearly separates the variable's type from the
+      dependency metadata, making the code cleaner and easier for our development tools to understand.   
+      <h1> this is a test </h1>
+      ## Markdown
+      def my_func(): 
+        pass
 
-  - question: | 
-       When should I use yield in a dependency?
+  - question: When should I use yield in a dependency?
     answer: | 
        You should use yield when a dependency needs to perform a setup action before the request is handled and a teardown action after the response is sent. This is most commonly used for managing database connections.   
 
