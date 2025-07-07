@@ -4,7 +4,12 @@ from pathlib import Path
 
 # --- Configuration ---
 # The subfolder where your YAML evaluation files are stored.
-DATA_FOLDER = "./temp_datasets"
+DATA_FOLDER = "../datasets"
+
+# In a real application, use st.secrets for security instead of hardcoding.
+APP_USERNAME = "cf"
+APP_PASSWORD = "cf"
+
 
 # --- Helper Functions ---
 
@@ -43,10 +48,10 @@ def save_data(file_path: Path, data: dict):
 
 # --- Main Application ---
 
-def main():
-    st.set_page_config(layout="wide", page_title="YAML Evaluation Editor")
+def main_app_page():
+    st.set_page_config(layout="wide", page_title="CodeFusion Evaluation Editor")
 
-    st.title("📝 YAML Evaluation Dataset Editor")
+    st.title("📝 CodeFusion Evaluation Dataset Editor")
     st.markdown("Select a dataset from the sidebar to view, edit, add, or delete question-answer pairs.")
 
     data_path = Path(DATA_FOLDER)
@@ -125,24 +130,60 @@ def main():
             st.rerun()
 
 
-        # --- Section for Adding New Entries ---
+         # --- (CHANGED) Section for Adding New Entries with Callback ---
         st.header("➕ Add a New Entry")
-        
-        new_question = st.text_input("New Question", key="new_question")
-        new_answer = st.text_area("New Expected Answer", key="new_answer", height=120)
 
-        if st.button("Add and Save New Entry", use_container_width=True):
-            if new_question and new_answer:
-                new_entry = {"question": new_question, "answer": new_answer}
+        # Define the callback function that will handle the logic
+        def add_new_entry_callback():
+            # Use .get() to avoid errors if the key doesn't exist
+            new_q = st.session_state.get("new_question", "")
+            new_a = st.session_state.get("new_answer", "")
+            
+            if new_q and new_a:
+                new_entry = {"question": new_q, "answer": new_a}
                 st.session_state.data["questions"].append(new_entry)
-                save_data(selected_file_path, st.session_state.data)
+                save_data(st.session_state.active_file, st.session_state.data)
                 
+                # Clear the input fields for the next entry
                 st.session_state.new_question = ""
                 st.session_state.new_answer = ""
-                st.experimental_rerun()
             else:
                 st.warning("Both a question and an answer are required to add a new entry.")
 
+        st.text_input("New Question", key="new_question")
+        st.text_area("New Expected Answer", key="new_answer", height=120)
 
-if __name__ == "__main__":
-    main()
+        # The button now uses the on_click callback
+        st.button(
+            "Add and Save New Entry",
+            on_click=add_new_entry_callback,
+            use_container_width=True,
+        )
+
+# --- Login Page ---
+def login_page():
+    """Displays the login page."""
+    st.set_page_config(page_title="Login")
+    st.title("🔐 CodeFusion Login")
+    
+    with st.form("login_form"):
+        username = st.text_input("Username").lower()
+        password = st.text_input("Password", type="password")
+        submitted = st.form_submit_button("Login", type="primary")
+
+        if submitted:
+            if username == APP_USERNAME and password == APP_PASSWORD:
+                st.session_state.authenticated = True
+                st.session_state.username = username
+                st.rerun()
+            else:
+                st.error("😕 Invalid username or password")
+
+# --- App Entry Point ---
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+
+if st.session_state.authenticated:
+    main_app_page()
+else:
+    login_page()
